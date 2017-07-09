@@ -1,6 +1,7 @@
-{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE ForeignFunctionInterface, DeriveDataTypeable #-}
 
-module ShamirSecretSharing ( create_shares
+module ShamirSecretSharing ( ShamirSecretSharingException
+                           , create_shares
                            , combine_shares
                            , share_size
                            , secret_size) where
@@ -24,14 +25,14 @@ foreign import ccall "sss_create_shares" sss_create_shares_c :: Ptr Word8 -> Ptr
 foreign import ccall "sss_combine_shares" sss_combine_shares_c :: Ptr Word8 -> Ptr Word8 -> Word8 -> IO Int
 
 
-data SSSException = InvalidN
+data ShamirSecretSharingException = InvalidN
                   | InvalidK
                   | InvalidBufSize
                   | InvalidShareSize
   deriving (Show, Eq, Typeable)
 
 
-instance Exception SSSException
+instance Exception ShamirSecretSharingException
 
 
 create_shares :: [Word8] -> Word8 -> Word8 -> IO [[Word8]]
