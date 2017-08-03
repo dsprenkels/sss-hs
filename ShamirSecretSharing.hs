@@ -11,8 +11,8 @@ module ShamirSecretSharing ( ShamirSecretSharingException
                            , keySize) where
 
 import Control.Exception (Exception, throw)
-import Data.Typeable (Typeable)
 import Data.List (nub)
+import Data.Typeable (Typeable)
 import Data.Word (Word8)
 import Foreign.Marshal.Array (allocaArray, withArray, peekArray)
 import Foreign.Ptr (Ptr)
