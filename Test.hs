@@ -10,7 +10,10 @@ import Test.QuickCheck.Gen
 import Test.QuickCheck.Monadic
 import Test.QuickCheck.Test
 
-import ShamirSecretSharing (createShares, combineShares)
+import ShamirSecretSharing ( createShares
+                           , combineShares
+                           , createKeyshares
+                           , combineKeyshares)
 
 
 newtype Msg = Msg [Word8] deriving Show
@@ -20,20 +23,36 @@ instance Arbitrary Msg where
     msg <- vectorOf 64 chooseAny
     return $ Msg msg
 
+newtype Key = Key [Word8] deriving Show
 
-prop_CreateCombine :: Msg -> NonZero Word8 -> NonZero Word8 -> NonZero Word8 -> Property
-prop_CreateCombine (Msg msg) (NonZero n) (NonZero k) (NonZero k2) = monadicIO $ do
-    let k' = min k n
-    let k2' = min k2 n
-    shares <- run $ createShares msg n k'
-    let restored = combineShares $ take (fromInteger (toInteger k2')) shares
-    assert $ if (k2' >= k') then
+instance Arbitrary Key where
+  arbitrary = do
+    msg <- vectorOf 32 chooseAny
+    return $ Key msg
+
+prop_CreateCombineShares :: Msg -> NonZero Word8 -> NonZero Word8 -> NonZero Word8 -> Property
+prop_CreateCombineShares (Msg msg) (NonZero n) (NonZero k) (NonZero k') = monadicIO $ do
+    pre $ k <= n
+    pre $ k' <= n
+    shares <- run $ createShares msg n k
+    let restored = combineShares $ take (fromInteger (toInteger k')) shares
+    monitor (counterexample $ "restored share: " ++ show restored)
+    assert $ if (k' >= k) then
         (fromJust restored) == msg
     else
         restored == Nothing
 
+prop_CreateCombineKeyshares :: Key -> NonZero Word8 -> NonZero Word8 -> NonZero Word8 -> Property
+prop_CreateCombineKeyshares (Key key) (NonZero n) (NonZero k) (NonZero k') = monadicIO $ do
+    pre $ k <= n
+    pre $ k' <= n
+    keyshares <- run $ createKeyshares key n k
+    let restored = combineKeyshares $ take (fromInteger (toInteger k')) keyshares
+    monitor (counterexample $ "restored keyshare: " ++ show restored)
+    assert $ (k' >= k) == (restored == key)
 
 main :: IO ()
 main = do
-    result <- quickCheckResult prop_CreateCombine
-    unless (isSuccess result) exitFailure
+    results <- sequence $ [ quickCheckResult prop_CreateCombineShares
+                          , quickCheckResult prop_CreateCombineKeyshares]
+    unless (all isSuccess results) exitFailure
