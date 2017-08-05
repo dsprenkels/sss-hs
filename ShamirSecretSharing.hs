@@ -11,7 +11,6 @@ module ShamirSecretSharing ( ShamirSecretSharingException
                            , keySize) where
 
 import Control.Exception (Exception, throw)
-import Data.List (nub)
 import Data.Typeable (Typeable)
 import Data.Word (Word8)
 import Foreign.Marshal.Array (allocaArray, withArray, peekArray)
@@ -61,7 +60,7 @@ combineShares :: [[Word8]] -> Maybe [Word8]
 combineShares shares
     | all (\x -> length x == shareSize) shares = unsafePerformIO $ do
         allocaArray secretSize $ \out -> do
-            withArray (concat $ nub shares) $ \input -> do
+            withArray (concat shares) $ \input -> do
                 ret <- sss_combine_shares_c out input k
                 buf <- peekArray secretSize out
                 return $ case ret of 0 -> Just buf
@@ -88,7 +87,7 @@ combineKeyshares :: [[Word8]] -> [Word8]
 combineKeyshares keyshares
     | all (\x -> length x == keyshareSize) keyshares = unsafePerformIO $ do
         allocaArray keySize $ \out -> do
-            withArray (concat $ nub keyshares) $ \input -> do
+            withArray (concat keyshares) $ \input -> do
                 sss_combine_keyshares_c out input k
                 peekArray keySize out
     | otherwise = throw InvalidShareSize
